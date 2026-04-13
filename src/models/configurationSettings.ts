@@ -1,4 +1,4 @@
-import { CharacterPair, Event, EventEmitter, languages, ViewColumn, window, workspace } from 'vscode';
+import { CharacterPair, Event, EventEmitter, languages, ViewColumn, window, workspace, WorkspaceConfiguration } from 'vscode';
 import configuration from '../../language-configuration.json';
 import { getCurrentTextDocument } from '../utils/workspaceUtility';
 import { RequestHeaders } from './base';
@@ -6,6 +6,7 @@ import { FormParamEncodingStrategy, fromString as ParseFormParamEncodingStr } fr
 import { fromString as ParseLogLevelStr, LogLevel } from './logLevel';
 import { fromString as ParsePreviewOptionStr, PreviewOption } from './previewOption';
 import { RequestMetadata } from './requestMetadata';
+import { parseResponsePreviewTarget, ResponsePreviewTarget } from './responsePreviewTarget';
 
 export type HostCertificates = {
     [key: string]: {
@@ -32,7 +33,7 @@ export interface IRestClientSettings {
     readonly fontWeight?: string;
     readonly environmentVariables: { [key: string]: { [key: string]: string } };
     readonly mimeAndFileExtensionMapping: { [key: string]: string };
-    readonly previewResponseInUntitledDocument: boolean;
+    readonly responsePreviewTarget: ResponsePreviewTarget;
     readonly hostCertificates: HostCertificates;
     readonly oidcCertificates: HostCertificates;
     readonly oidcScopes: string[];
@@ -68,7 +69,7 @@ export class SystemSettings implements IRestClientSettings {
     private _fontWeight?: string;
     private _environmentVariables: { [key: string]: { [key: string]: string } };
     private _mimeAndFileExtensionMapping: { [key: string]: string };
-    private _previewResponseInUntitledDocument: boolean;
+    private _responsePreviewTarget: ResponsePreviewTarget;
     private _hostCertificates: HostCertificates;
     private _oidcCertificates: HostCertificates;
     private _oidcScopes: string[];
@@ -147,8 +148,8 @@ export class SystemSettings implements IRestClientSettings {
         return this._mimeAndFileExtensionMapping;
     }
 
-    public get previewResponseInUntitledDocument() {
-        return this._previewResponseInUntitledDocument;
+    public get responsePreviewTarget() {
+        return this._responsePreviewTarget;
     }
 
     public get hostCertificates() {
@@ -276,7 +277,7 @@ export class SystemSettings implements IRestClientSettings {
         this._environmentVariables = restClientSettings.get<{ [key: string]: { [key: string]: string } }>("environmentVariables", {});
         this._mimeAndFileExtensionMapping = restClientSettings.get<{ [key: string]: string }>("mimeAndFileExtensionMapping", {});
 
-        this._previewResponseInUntitledDocument = restClientSettings.get<boolean>("previewResponseInUntitledDocument", false);
+        this._responsePreviewTarget = SystemSettings.resolveResponsePreviewTarget(restClientSettings);
         this._previewColumn = this.parseColumn(restClientSettings.get<string>("previewColumn", "two"));
         this._previewResponsePanelTakeFocus = restClientSettings.get<boolean>("previewResponsePanelTakeFocus", true);
         this._hostCertificates = restClientSettings.get<HostCertificates>("certificates", {});
@@ -311,6 +312,24 @@ export class SystemSettings implements IRestClientSettings {
             default:
                 return ViewColumn.Beside;
         }
+    }
+
+    private static resolveResponsePreviewTarget(restClientSettings: WorkspaceConfiguration): ResponsePreviewTarget {
+        const inspected = restClientSettings.inspect<string>('responsePreviewTarget');
+        const fromUser =
+            inspected?.globalValue
+            ?? inspected?.workspaceValue
+            ?? inspected?.workspaceFolderValue;
+        if (fromUser !== undefined && fromUser !== null && fromUser !== '') {
+            return parseResponsePreviewTarget(fromUser);
+        }
+        if (restClientSettings.get<boolean>('previewResponseInUntitledDocument', false)) {
+            return ResponsePreviewTarget.UntitledDocument;
+        }
+        if (restClientSettings.get<boolean>('previewResponseInExternalBrowser', false)) {
+            return ResponsePreviewTarget.ExternalBrowser;
+        }
+        return ResponsePreviewTarget.Webview;
     }
 }
 
@@ -399,8 +418,8 @@ export class RestClientSettings implements IRestClientSettings {
         return this.systemSettings.mimeAndFileExtensionMapping;
     }
 
-    public get previewResponseInUntitledDocument() {
-        return this.systemSettings.previewResponseInUntitledDocument;
+    public get responsePreviewTarget() {
+        return this.systemSettings.responsePreviewTarget;
     }
 
     public get oidcCertificates() {

@@ -72,7 +72,7 @@ export class Selector {
         selectedText = rawLines.slice(requestRange[0], requestRange[1] + 1).join(EOL);
 
         // variables replacement
-        selectedText = await VariableProcessor.processRawRequest(selectedText, promptVariables);
+        selectedText = await VariableProcessor.processRawRequest(selectedText, promptVariables, editor.document);
 
         return {
             text: selectedText,

@@ -40,18 +40,21 @@ export class FileVariableProvider implements HttpVariableProvider {
 
     public readonly type: VariableType = VariableType.File;
 
-    public async has(name: string, document: TextDocument): Promise<boolean> {
+    public async has(name: string, document?: TextDocument): Promise<boolean> {
         name = name.replace(/^%/, "");
         const variables = await this.getFileVariables(document);
         return variables.some(v => v.name === name);
     }
 
-    public async get(name: string, document: TextDocument): Promise<HttpVariable> {
+    public async get(name: string, document?: TextDocument): Promise<HttpVariable> {
         const isEncoded = name.startsWith("%");
         name = name.replace(/^%/, "");
         const variables = await this.getFileVariables(document);
         const variable = variables.find(v => v.name === name);
         if (!variable) {
+            return { name, error: ResolveErrorMessage.FileVariableNotExist };
+        }
+        if (!document) {
             return { name, error: ResolveErrorMessage.FileVariableNotExist };
         } else {
             const variableMap = await this.resolveFileVariables(document, variables);
@@ -63,13 +66,19 @@ export class FileVariableProvider implements HttpVariableProvider {
         }
     }
 
-    public async getAll(document: TextDocument): Promise<HttpVariable[]> {
+    public async getAll(document?: TextDocument): Promise<HttpVariable[]> {
+        if (!document) {
+            return [];
+        }
         const variables = await this.getFileVariables(document);
         const variableMap = await this.resolveFileVariables(document, variables);
         return [...variableMap.entries()].map(([name, value]) => ({ name, value }));
     }
 
-    private async getFileVariables(document: TextDocument): Promise<FileVariableValue[]> {
+    private async getFileVariables(document?: TextDocument): Promise<FileVariableValue[]> {
+        if (!document) {
+            return [];
+        }
         if (this.fileVariableCache.has(document)) {
             return this.fileVariableCache.get(document)!;
         }

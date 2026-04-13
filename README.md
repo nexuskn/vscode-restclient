@@ -79,7 +79,7 @@ content-type: application/json
 ```
 To send a prepared request, you have several options. The easiest way is to click the `Send Request` link above the request. This link will appear automatically if the file's language mode is set to `HTTP`. You can also use the shortcut `Ctrl+Alt+R`(`Cmd+Alt+R` for macOS), right-click in the editor and select `Send Request` from the context menu, or press `F1` and select/type `Rest Client: Send Request`.
 
-The response will be previewed in a separate webview panel inside Visual Studio Code. If you prefer to use the full power of searching, selecting, or manipulating in Visual Studio Code, you can preview the response in an untitled document by setting `rest-client.previewResponseInUntitledDocument` to `true`.
+The response is shown according to **`rest-client.responsePreviewTarget`**: embedded webview (default), untitled document, external browser, **virtual document** (custom URI tab, no webview), or **output channel**. Use the setting UI dropdown or set the value to `webview`, `untitledDocument`, `externalBrowser`, `virtualDocument`, or `outputChannel`.
 
 When you issue a request, a waiting spin icon will appear in the status bar until the response is received. You can click the spin icon to cancel the request. Once the response is received, the waiting icon will be replaced with the total duration and response size. By hovering over the total duration in the status bar, you can view a breakdown of the response time, including details on _Socket_, _DNS_, _TCP_, _First Byte_ and _Download_. By hovering over the response size displayed in the status bar, you can view a breakdown of the response size details for both the _headers_ and _body_.
 
@@ -722,7 +722,7 @@ exchange | Preview the whole HTTP exchange(request and response)
 * `rest-client.fontWeight`: Controls the font weight used in the response preview. (Default is __normal__)
 * `rest-client.environmentVariables`: Sets the environments and custom variables belongs to it (e.g., `{"production": {"host": "api.example.com"}, "sandbox":{"host":"sandbox.api.example.com"}}`). (Default is __{}__)
 * `rest-client.mimeAndFileExtensionMapping`: Sets the custom mapping of mime type and file extension of saved response body. (Default is __{}__)
-* `rest-client.previewResponseInUntitledDocument`: Preview response in untitled document if set to true, otherwise displayed in html view. (Default is __false__)
+* `rest-client.responsePreviewTarget`: Where to show the response after Send Request: `webview`, `untitledDocument`, `externalBrowser`, `virtualDocument`, or `outputChannel`. (Default is __webview__) Legacy booleans `previewResponseInUntitledDocument` / `previewResponseInExternalBrowser` are still honored for migration if this key is not set in your user/workspace settings.
 * `rest-client.certificates`: Certificate paths for different hosts. The path can be absolute path or relative path(relative to workspace or current http file). (Default is __{}__)
 * `rest-client.suppressResponseBodyContentTypeValidationWarning`: Suppress response body content type validation. (Default is __false__)
 * `rest-client.previewOption`: Response preview output option. Option details is described above. (Default is __full__)

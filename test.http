@@ -1,0 +1,28 @@
+@endpoint = {{$dotenv MAIGO_ENDPOINT}}
+@endpoint_api_key={{$dotenv MAIGO_APP_KEY}}
+
+###
+# @name 代理店・代理店支店取得
+
+GET {{endpoint}}/api/agencies-branches-map HTTP/1.1
+Content-Type: application/json;charset=UTF-8
+Authorization: Bearer {{endpoint_api_key}}
+
+
+###
+# @name 代理店・代理店支店取得2
+
+GET http://localhost:8000/api/agencies-branches-map HTTP/1.1
+Content-Type: application/json;charset=UTF-8
+Authorization: Bearer 79579c90-1df0-440a-be44-cd702ca5cf10
+
+### 
+
+GET https://pre.maigo.org/api/agencies-branches-map HTTP/1.1
+Content-Type: application/json;charset=UTF-8
+Authorization: Bearer 79579c90-1df0-440a-be44-cd702ca5cf10
+
+###
+# @name RESTDummyData
+# Docs: https://jsonplaceholder.typicode.com/
+GET https://jsonplaceholder.typicode.com/users/1 HTTP/1.1

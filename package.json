@@ -469,11 +469,25 @@
           },
           "markdownDescription": "Sets the custom mapping of mime type and file extension of saved response body (e.g., `{\"application/atom+xml\": \"xml\"}`)"
         },
-        "rest-client.previewResponseInUntitledDocument": {
-          "type": "boolean",
-          "default": false,
+        "rest-client.responsePreviewTarget": {
+          "type": "string",
+          "enum": [
+            "webview",
+            "untitledDocument",
+            "externalBrowser",
+            "virtualDocument",
+            "outputChannel"
+          ],
+          "default": "webview",
           "scope": "resource",
-          "description": "Preview response in untitled document if set to true, otherwise displayed in html view"
+          "markdownEnumDescriptions": [
+            "Embedded response panel inside the editor (default).",
+            "Open the response in a new untitled text document (searchable, full editor features).",
+            "Open the response in the **system default browser** as a single reusable HTML file under your temp folder (plain-text style body, escaped for safety). Use when the embedded webview misbehaves.",
+            "Open the response in an editor tab backed by a **virtual document** (tab title like `MyAPI (125ms)` with no file extension; uniqueness in query `t` / `id`). Language mode follows Content-Type for body-only preview, otherwise `http`.",
+            "Print the response in the **Output** panel (`REST Client Response`), then show that panel (no webview)."
+          ],
+          "markdownDescription": "Where to show the HTTP response after **Send Request**. Replaces the older `previewResponseInUntitledDocument` / `previewResponseInExternalBrowser` booleans; those are still read once for migration if this key is unset."
         },
         "rest-client.oidcScopes": {
           "type": "array",

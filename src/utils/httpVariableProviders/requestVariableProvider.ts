@@ -25,16 +25,19 @@ export class RequestVariableProvider implements HttpVariableProvider {
 
     public readonly type: VariableType = VariableType.Request;
 
-    public async has(name: string, document: TextDocument): Promise<boolean> {
+    public async has(name: string, document?: TextDocument): Promise<boolean> {
         const [variableName] = name.trim().split('.');
         const variables = this.getRequestVariables(document);
         return variables.includes(variableName);
     }
 
-    public async get(name: string, document: TextDocument): Promise<HttpVariable> {
+    public async get(name: string, document?: TextDocument): Promise<HttpVariable> {
         const [variableName] = name.trim().split('.');
         const variables = this.getRequestVariables(document);
         if (!variables.includes(variableName)) {
+            return { name: variableName, error: ResolveErrorMessage.RequestVariableNotExist };
+        }
+        if (!document) {
             return { name: variableName, error: ResolveErrorMessage.RequestVariableNotExist };
         }
         const value = RequestVariableCache.get(document, variableName);
@@ -46,12 +49,18 @@ export class RequestVariableProvider implements HttpVariableProvider {
         return this.convertToHttpVariable(variableName, resolveResult);
     }
 
-    public async getAll(document: TextDocument): Promise<HttpVariable[]> {
+    public async getAll(document?: TextDocument): Promise<HttpVariable[]> {
+        if (!document) {
+            return [];
+        }
         const variables = this.getRequestVariables(document);
         return variables.map(v => ({ name: v, value: RequestVariableCache.get(document, v) }));
     }
 
-    private getRequestVariables(document: TextDocument): string[] {
+    private getRequestVariables(document?: TextDocument): string[] {
+        if (!document) {
+            return [];
+        }
         if (this.requestVariableCache.has(document)) {
             return this.requestVariableCache.get(document)!;
         }

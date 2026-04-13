@@ -8,6 +8,7 @@ import { HistoryController } from './controllers/historyController';
 import { RequestController } from './controllers/requestController';
 import { SwaggerController } from './controllers/swaggerController';
 import { CustomVariableDiagnosticsProvider } from "./providers/customVariableDiagnosticsProvider";
+import { HttpResponseVirtualDocumentProvider, RESPONSE_VIRTUAL_URI_SCHEME } from './providers/httpResponseVirtualDocumentProvider';
 import { RequestBodyDocumentLinkProvider } from './providers/documentLinkProvider';
 import { EnvironmentOrFileVariableHoverProvider } from './providers/environmentOrFileVariableHoverProvider';
 import { FileVariableDefinitionProvider } from './providers/fileVariableDefinitionProvider';
@@ -28,6 +29,11 @@ import { UserDataManager } from './utils/userDataManager';
 // your extension is activated the very first time the command is executed
 export async function activate(context: ExtensionContext) {
     await UserDataManager.initialize();
+
+    context.subscriptions.push(
+        workspace.registerTextDocumentContentProvider(
+            RESPONSE_VIRTUAL_URI_SCHEME,
+            HttpResponseVirtualDocumentProvider.Instance));
 
     const requestController = new RequestController(context);
     const historyController = new HistoryController();

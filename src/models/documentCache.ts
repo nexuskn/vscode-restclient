@@ -12,7 +12,10 @@ export class DocumentCache<T> {
         this._cache = new Map<string, Container<T>>();
     }
 
-    public get(document: TextDocument): T | undefined {
+    public get(document: TextDocument | undefined): T | undefined {
+        if (!document) {
+            return undefined;
+        }
         const result = this._cache.get(this.getKey(document));
         if (result === undefined) {
             return undefined;
@@ -23,12 +26,18 @@ export class DocumentCache<T> {
         return this.ignoreVersion ? value : (version === document.version ? value : undefined);
     }
 
-    public set(document: TextDocument, value: T): this {
+    public set(document: TextDocument | undefined, value: T): this {
+        if (!document) {
+            return this;
+        }
         this._cache.set(this.getKey(document), { value, version: document.version });
         return this;
     }
 
-    public delete(document: TextDocument): boolean {
+    public delete(document: TextDocument | undefined): boolean {
+        if (!document) {
+            return false;
+        }
         return this._cache.delete(this.getKey(document));
     }
 
@@ -36,7 +45,10 @@ export class DocumentCache<T> {
         this._cache.clear();
     }
 
-    public has(document: TextDocument): boolean {
+    public has(document: TextDocument | undefined): boolean {
+        if (!document) {
+            return false;
+        }
         if (!this._cache.has(this.getKey(document))) {
             return false;
         }

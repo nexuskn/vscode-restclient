@@ -1,6 +1,7 @@
 import { ExtensionContext, Range, TextDocument, ViewColumn, window } from 'vscode';
 import Logger from '../logger';
 import { IRestClientSettings, RequestSettings, RestClientSettings } from '../models/configurationSettings';
+import { ResponsePreviewTarget } from '../models/responsePreviewTarget';
 import { HistoricalHttpRequest, HttpRequest } from '../models/httpRequest';
 import { RequestMetadata } from '../models/requestMetadata';
 import { RequestParserFactory } from '../models/requestParserFactory';
@@ -11,7 +12,10 @@ import { RequestVariableCache } from "../utils/requestVariableCache";
 import { Selector } from '../utils/selector';
 import { UserDataManager } from '../utils/userDataManager';
 import { getCurrentTextDocument } from '../utils/workspaceUtility';
+import { HttpResponseExternalBrowserView } from '../views/httpResponseExternalBrowserView';
+import { HttpResponseOutputChannelView } from '../views/httpResponseOutputChannelView';
 import { HttpResponseTextDocumentView } from '../views/httpResponseTextDocumentView';
+import { HttpResponseVirtualDocumentView } from '../views/httpResponseVirtualDocumentView';
 import { HttpResponseWebview } from '../views/httpResponseWebview';
 
 export class RequestController {
@@ -19,6 +23,9 @@ export class RequestController {
     private _httpClient: HttpClient;
     private _webview: HttpResponseWebview;
     private _textDocumentView: HttpResponseTextDocumentView;
+    private _externalBrowserView: HttpResponseExternalBrowserView;
+    private _virtualDocumentView: HttpResponseVirtualDocumentView;
+    private _outputChannelView: HttpResponseOutputChannelView;
     private _lastRequestSettingTuple: [HttpRequest, IRestClientSettings];
     private _lastPendingRequest?: HttpRequest;
 
@@ -28,6 +35,9 @@ export class RequestController {
         this._webview = new HttpResponseWebview(context);
         this._webview.onDidCloseAllWebviewPanels(() => this._requestStatusEntry.update({ state: RequestState.Closed }));
         this._textDocumentView = new HttpResponseTextDocumentView();
+        this._externalBrowserView = new HttpResponseExternalBrowserView();
+        this._virtualDocumentView = new HttpResponseVirtualDocumentView();
+        this._outputChannelView = new HttpResponseOutputChannelView();
     }
 
     @trace('Request')
@@ -60,7 +70,7 @@ export class RequestController {
         // parse http request
         const httpRequest = await RequestParserFactory.createRequestParser(text, settings).parseHttpRequest(name);
 
-        await this.runCore(httpRequest, settings, document);
+        await this.runCore(httpRequest, settings, document, editor.viewColumn ?? ViewColumn.One);
     }
 
     @trace('Rerun Request')
@@ -72,7 +82,8 @@ export class RequestController {
         const [request, settings] = this._lastRequestSettingTuple;
 
         // TODO: recover from last request settings
-        await this.runCore(request, settings);
+        const columnWhenInvoked = window.activeTextEditor?.viewColumn ?? ViewColumn.One;
+        await this.runCore(request, settings, undefined, columnWhenInvoked);
     }
 
     @trace('Cancel Request')
@@ -89,7 +100,7 @@ export class RequestController {
         }
     }
 
-    private async runCore(httpRequest: HttpRequest, settings: IRestClientSettings, document?: TextDocument) {
+    private async runCore(httpRequest: HttpRequest, settings: IRestClientSettings, document?: TextDocument, originViewColumn?: ViewColumn) {
         // clear status bar
         this._requestStatusEntry.update({ state: RequestState.Pending });
 
@@ -113,12 +124,19 @@ export class RequestController {
             }
 
             try {
-                const activeColumn = window.activeTextEditor!.viewColumn;
+                // After await, activeTextEditor may differ (e.g. Cursor); use the column from when the request was started.
+                const activeColumn = originViewColumn ?? window.activeTextEditor?.viewColumn ?? ViewColumn.One;
                 const previewColumn = settings.previewColumn === ViewColumn.Active
                     ? activeColumn
-                    : ((activeColumn as number) + 1) as ViewColumn;
-                if (settings.previewResponseInUntitledDocument) {
+                    : (((activeColumn as number) || ViewColumn.One) + 1) as ViewColumn;
+                if (settings.responsePreviewTarget === ResponsePreviewTarget.UntitledDocument) {
                     this._textDocumentView.render(response, previewColumn);
+                } else if (settings.responsePreviewTarget === ResponsePreviewTarget.ExternalBrowser) {
+                    await this._externalBrowserView.render(response, settings);
+                } else if (settings.responsePreviewTarget === ResponsePreviewTarget.VirtualDocument) {
+                    await this._virtualDocumentView.render(response, settings, previewColumn);
+                } else if (settings.responsePreviewTarget === ResponsePreviewTarget.OutputChannel) {
+                    this._outputChannelView.render(response, settings);
                 } else if (previewColumn) {
                     this._webview.render(response, previewColumn);
                 }
@@ -155,5 +173,6 @@ export class RequestController {
     public dispose() {
         this._requestStatusEntry.dispose();
         this._webview.dispose();
+        HttpResponseOutputChannelView.disposeChannel();
     }
 }
